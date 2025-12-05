@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Academia Dashboard</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        .card { border: 1px solid #ccc; padding: 20px; margin: 10px; border-radius: 10px; }
+        .grid { display: flex; flex-wrap: wrap; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        input { margin: 5px; padding: 8px; }
+        button { padding: 8px 15px; background: #4CAF50; color: white; border: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>??? Academia Dashboard</h1>
+    
+    <h2>?? Planos</h2>
+    <div id="planos" class="grid"></div>
+    
+    <h2>? Novo Membro</h2>
+    <div>
+        <input id="nome" placeholder="Nome">
+        <input id="email" placeholder="Email">
+        <input id="idade" type="number" placeholder="Idade">
+        <select id="planoId">
+            <option value="1">Normal (Balestrin)</option>
+            <option value="2">Premium (Leo Stronda)</option>
+            <option value="3">Platina (Carla?o)</option>
+        </select>
+        <button onclick="adicionarMembro()">Adicionar</button>
+    </div>
+    
+    <h2>?? Membros</h2>
+    <table id="membros">
+        <thead><tr><th>ID</th><th>Nome</th><th>Email</th><th>Idade</th><th>Plano</th><th>A??es</th></tr></thead>
+        <tbody></tbody>
+    </table>
+    
+    <script>
+        const API_URL = "http://localhost:3000";
+        
+        async function carregarDados() {
+            try {
+                // Carregar estat?sticas dos planos
+                const planosRes = await fetch(API_URL + "/estatisticas");
+                const planos = await planosRes.json();
+                
+                // Carregar membros
+                const membrosRes = await fetch(API_URL + "/membros");
+                const membros = await membrosRes.json();
+                
+                exibirPlanos(planos);
+                exibirMembros(membros);
+            } catch (error) {
+                console.error("Erro:", error);
+            }
+        }
+        
+        function exibirPlanos(planos) {
+            const container = document.getElementById("planos");
+            container.innerHTML = planos.map(plano => `
+                <div class="card" style="width: 300px;">
+                    <h3>Plano ${plano.plano.toUpperCase()}</h3>
+                    <p>?? Membros: ${plano.totalMembros}</p>
+                    <p>?? R$ ${plano.preco.toFixed(2)}</p>
+                    <p>??? Treinador: ${plano.treinador}</p>
+                    <p>?? Exerc?cios:</p>
+                    <ul>
+                        ${plano.exercicios.map(ex => `<li>${ex.nome}</li>`).join("")}
+                    </ul>
+                </div>
+            `).join("");
+        }
+        
+        function exibirMembros(membros) {
+            const tbody = document.querySelector("#membros tbody");
+            tbody.innerHTML = membros.map(membro => `
+                <tr>
+                    <td>${membro.id}</td>
+                    <td>${membro.nome}</td>
+                    <td>${membro.email}</td>
+                    <td>${membro.idade}</td>
+                    <td>Plano ${membro.planoId}</td>
+                    <td>
+                        <button onclick="deletarMembro(${membro.id})">Deletar</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+        
+        async function adicionarMembro() {
+            const membro = {
+                nome: document.getElementById("nome").value,
+                email: document.getElementById("email").value,
+                idade: parseInt(document.getElementById("idade").value),
+                planoId: parseInt(document.getElementById("planoId").value)
+            };
+            
+            await fetch(API_URL + "/membros", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(membro)
+            });
+            
+            // Limpar campos
+            document.getElementById("nome").value = "";
+            document.getElementById("email").value = "";
+            document.getElementById("idade").value = "";
+            
+            carregarDados();
+        }
+        
+        async function deletarMembro(id) {
+            if (confirm("Deletar membro?")) {
+                await fetch(API_URL + "/membros/" + id, { method: "DELETE" });
+                carregarDados();
+            }
+        }
+        
+        // Carregar dados ao iniciar
+        carregarDados();
+    </script>
+</body>
+</html>
